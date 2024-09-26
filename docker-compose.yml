@@ -1,0 +1,47 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16
+    container_name: db_library
+    ports:
+      - 5432:5432
+    env_file:
+      - .env
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d postgres -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mock:
+    build:
+      context: .
+    env_file:
+      - .env
+    container_name: lib_server
+    command: ["/library/docker/server.sh"]
+    ports:
+      - 8090:8090
+    depends_on:
+      db:
+        condition: service_healthy
+
+  go:
+    build:
+      context: .
+    env_file:
+      - .env
+    container_name: app
+    command: ["/library/docker/run.sh"]
+    ports:
+      - 8080:8080
+    depends_on:
+      db:
+        condition: service_healthy
+
+
+volumes:
+  pgdata:
